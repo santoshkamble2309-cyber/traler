@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#f8fafc">
+<title>QR Studio — Modern QR Generator</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --ink: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --line: #e2e8f0;
+    --soft: #f1f5f9;
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+    --bar-h: 78px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.45;
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ---------- APP CONTAINER ---------- */
+  .app {
+    max-width: 520px;
+    margin: 0 auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- HEADER ---------- */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: calc(12px + var(--safe-t)) 18px 12px;
+    background: rgba(248,250,252,.82);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid var(--line);
+  }
+  .logo {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    font-size: 20px;
+    box-shadow: 0 4px 14px rgba(99,102,241,.35);
+    flex-shrink: 0;
+  }
+  .brand { flex: 1; min-width: 0; }
+  .brand h1 {
+    font-size: 16px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -.2px;
+  }
+  .brand p {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: .2px;
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: 0;
+    background: var(--soft);
+    color: var(--ink-2);
+    font-size: 18px;
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: .15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:active { transform: scale(.92); background: var(--line); }
+
+  /* ---------- MAIN ---------- */
+  main {
+    flex: 1;
+    padding: 16px 16px calc(var(--bar-h) + var(--safe-b) + 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ---------- CARDS ---------- */
+  .card {
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(15,23,42,.03);
+  }
+  .label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .label-row label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ink-2);
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+  .counter {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-3);
+  }
+
+  /* ---------- URL INPUT ---------- */
+  .input-group {
+    display: flex;
+    gap: 8px;
+  }
+  .input-group input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 13px;
+    background: #f8fafc;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--ink);
+    transition: .15s;
+    -webkit-appearance: none;
+  }
+  .input-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+  }
+  .input-group input::placeholder { color: var(--ink-3); }
+  .paste-btn {
+    border: 0;
+    background: var(--soft);
+    border-radius: 13px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-2);
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+    flex-shrink: 0;
+  }
+  .paste-btn:active { background: var(--line); transform: scale(.95); }
+
+  /* ---------- QR PREVIEW ---------- */
+  .qr-card {
+    background: var(--surface);
+    border-radius: 22px;
+    padding: 22px 18px;
+    text-align: center;
+    border: 1px solid var(--line);
+    transition: background .3s ease, border-color .3s ease;
+    box-shadow: 0 6px 24px rgba(15,23,42,.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .qr-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(99,102,241,.05), transparent 70%);
+    pointer-events: none;
+  }
+  #qrCanvas {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #fff;
+    position: relative;
+    z-index: 1;
+  }
+  #captionText {
+    margin-top: 16px;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -.2px;
+    word-break: break-word;
+    position: relative;
+    z-index: 1;
+  }
+  #subText {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-weight: 600;
+    word-break: break-all;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    z-index: 1;
+  }
+  .qr-empty {
+    padding: 40px 20px;
+    color: var(--ink-3);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .qr-empty svg { opacity: .4; margin-bottom: 8px; }
+
+  /* ---------- THEME SCROLLER ---------- */
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 2px;
+    margin-bottom: 10px;
+  }
+  .section-head h2 {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ink-2);
+    margin: 0;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+  .section-head .current {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent);
+    background: rgba(99,102,241,.1);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .theme-scroller {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 4px 2px 8px;
+    margin: 0 -16px;
+    padding-left: 18px;
+    padding-right: 18px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-padding-left: 18px;
+  }
+  .theme-scroller::-webkit-scrollbar { display: none; }
+
+  .theme-item {
+    flex: 0 0 auto;
+    width: 68px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    scroll-snap-align: start;
+    transition: .18s;
+  }
+  .theme-item:active { transform: scale(.94); }
+  .theme-swatch {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 900;
+    border: 2.5px solid transparent;
+    transition: .2s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 3px 10px rgba(15,23,42,.12);
+    position: relative;
+    overflow: hidden;
+  }
+  .theme-item.active .theme-swatch {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.22), 0 6px 16px rgba(99,102,241,.28);
+    transform: scale(1.06);
+  }
+  .theme-name {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    transition: .15s;
+  }
+  .theme-item.active .theme-name {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  /* ---------- ADVANCED (details) ---------- */
+  .advanced {
+    background: var(--surface);
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .advanced > summary {
+    padding: 16px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--ink-2);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .advanced > summary::-webkit-details-marker { display: none; }
+  .advanced > summary::after {
+    content: '';
+    width: 8px; height: 8px;
+    border-right: 2px solid var(--ink-3);
+    border-bottom: 2px solid var(--ink-3);
+    transform: rotate(45deg);
+    transition: .25s;
+    margin-right: 4px;
+  }
+  .advanced[open] > summary::after {
+    transform: rotate(-135deg);
+  }
+  .advanced-content {
+    padding: 0 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 12px 13px;
+    border: 1.5px solid var(--line);
+    border-radius: 11px;
+    background: #f8fafc;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--ink);
+    transition: .15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 10px;
+    padding-right: 34px;
+  }
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+  }
+
+  /* ---------- ERROR ---------- */
+  .err {
+    color: #dc2626;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border-radius: 11px;
+    border: 1px solid #fecaca;
+    display: none;
+  }
+  .err.show { display: block; }
+
+  /* ---------- BOTTOM ACTION BAR ---------- */
+  .bottom-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 60;
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px calc(12px + var(--safe-b));
+    background: rgba(248,250,252,.85);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    border-top: 1px solid var(--line);
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .bottom-bar::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99,102,241,.15), transparent);
+  }
+  .btn {
+    border: 0;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 14px;
+    transition: .15s;
+    -webkit-user-select: none;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.95); }
+  .btn-primary {
+    flex: 1.4;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(99,102,241,.35);
+  }
+  .btn-primary:active {
+    box-shadow: 0 3px 10px rgba(99,102,241,.3);
+  }
+  .btn-secondary {
+    flex: 1;
+    background: var(--soft);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-icon-only {
+    flex: 0 0 auto;
+    width: 52px;
+    background: var(--soft);
+    color: var(--ink-2);
+    font-size: 18px;
+    border: 1px solid var(--line);
+  }
+  .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* ---------- TOAST ---------- */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--bar-h) + var(--safe-b) + 16px);
+    left: 50%;
+    transform: translateX(-50%) translateY(24px);
+    background: rgba(15,23,42,.94);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    transition: .3s cubic-bezier(.4,0,.2,1);
+    z-index: 200;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 8px 24px rgba(15,23,42,.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ---------- DESKTOP POLISH ---------- */
+  @media (min-width: 640px) {
+    body {
+      background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 50%, #eef2ff 100%);
+      background-attachment: fixed;
+    }
+    .app {
+      margin: 24px auto;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: 0 24px 70px rgba(15,23,42,.14), 0 6px 20px rgba(15,23,42,.06);
+      min-height: calc(100vh - 48px);
+      min-height: calc(100dvh - 48px);
+    }
+    .app-header { padding-top: 16px; }
+    .bottom-bar {
+      left: 50%;
+      transform: translateX(-50%);
+      width: 520px;
+      border-radius: 0 0 26px 26px;
+    }
+  }
+
+  /* ---------- PRINT ---------- */
+  @media print {
+    @page { margin: 12mm; }
+    html, body {
+      background: #fff !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    body * { visibility: hidden !important; }
+    #qrArea, #qrArea * { visibility: visible !important; }
+    #qrArea {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      box-shadow: none !important;
+      border: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      border-radius: 0 !important;
+      text-align: center;
+    }
+    #qrArea::before { display: none !important; }
+    #qrCanvas {
+      max-width: 90mm !important;
+      width: 90mm !important;
+      margin: 0 auto !important;
+    }
+    #captionText {
+      font-size: 16pt !important;
+      color: #000 !important;
+      margin-top: 8mm !important;
+    }
+    #subText {
+      font-size: 9pt !important;
+      color: #444 !important;
+      margin-top: 2mm !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="app-header">
+    <div class="logo">✨</div>
+    <div class="brand">
+      <h1>QR Studio</h1>
+      <p>Offline • 18 Themes</p>
+    </div>
+    <button class="icon-btn" id="shareBtn" aria-label="Share">
+      <svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ===================== MAIN ===================== -->
+  <main>
+
+    <!-- URL input -->
+    <section class="card">
+      <div class="label-row">
+        <label for="urlInput">Website Link</label>
+        <span class="counter" id="urlCount">0 / 2000</span>
+      </div>
+      <div class="input-group">
+        <input type="text" id="urlInput" inputmode="url" placeholder="example.com"
+               autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="2000">
+        <button class="paste-btn" id="pasteBtn" type="button">Paste</button>
+      </div>
+      <div class="err" id="errBox"></div>
+    </section>
+
+    <!-- QR Preview -->
+    <section class="qr-card" id="qrArea">
+      <canvas id="qrCanvas"></canvas>
+      <div id="captionText"></div>
+      <div id="subText"></div>
+    </section>
+
+    <!-- Theme scroller -->
+    <section>
+      <div class="section-head">
+        <h2>Theme</h2>
+        <span class="current" id="themeName">Classic</span>
+      </div>
+      <div class="theme-scroller" id="themeGrid"></div>
+    </section>
+
+    <!-- Advanced options -->
+    <details class="advanced">
+      <summary>Advanced Settings</summary>
+      <div class="advanced-content">
+        <div class="field">
+          <label for="eclSelect">Error Correction</label>
+          <select id="eclSelect">
+            <option value="0">Low — 7% damage recovery</option>
+            <option value="1" selected>Medium — 15% (recommended)</option>
+            <option value="2">Quartile — 25%</option>
+            <option value="3">High — 30% (most robust)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="labelInput">Label (optional)</label>
+          <input type="text" id="labelInput" placeholder="Jaise: Hamari Website"
+                 autocomplete="off" maxlength="60">
+        </div>
+      </div>
+    </details>
+
+  </main>
+
+  <!-- ===================== BOTTOM BAR ===================== -->
+  <nav class="bottom-bar">
+    <button class="btn btn-icon-only" id="regenBtn" type="button" aria-label="Regenerate" title="Regenerate">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 10 15 10"/>
+      </svg>
+    </button>
+    <button class="btn btn-secondary" id="printBtn" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      Print
+    </button>
+    <button class="btn btn-primary" id="dlBtn" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download PNG
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =========================================================================
+   QR ENCODER (offline, pure JS, byte mode, versions 1–40)
+   ========================================================================= */
+var QRGen = (function () {
+  var EXP = new Uint8Array(512);
+  var LOG = new Uint8Array(256);
+  (function () {
+    var x = 1;
+    for (var i = 0; i < 255; i++) {
+      EXP[i] = x; LOG[x] = i;
+      x <<= 1; if (x & 0x100) x ^= 0x11D;
+    }
+    for (var j = 255; j < 512; j++) EXP[j] = EXP[j - 255];
+  })();
+  function gfMul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+
+  var ECC = [
+    [-1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+    [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28],
+    [-1,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30,28,30,30,30,30,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+    [-1,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28,30,24,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30]
+  ];
+  var BLK = [
+    [-1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25],
+    [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49],
+    [-1,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68],
+    [-1,1,1,2,4,4,4,5,5,8,8,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81]
+  ];
+  var FMT = [1, 0, 3, 2];
+
+  function rawModules(ver) {
+    var r = (16 * ver + 128) * ver + 64;
+    if (ver >= 2) {
+      var n = Math.floor(ver / 7) + 2;
+      r -= (25 * n - 10) * n - 55;
+      if (ver >= 7) r -= 36;
+    }
+    return r;
+  }
+  function dataCodewords(ver, ecl) {
+    return Math.floor(rawModules(ver) / 8) - ECC[ecl][ver] * BLK[ecl][ver];
+  }
+  function alignPos(ver) {
+    if (ver === 1) return [];
+    var n = Math.floor(ver / 7) + 2;
+    var step = (ver === 32) ? 26 : Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2;
+    var res = [6];
+    for (var p = ver * 4 + 10; res.length < n; p -= step) res.splice(1, 0, p);
+    return res;
+  }
+  function rsDiv(deg) {
+    var d = new Uint8Array(deg); d[deg - 1] = 1;
+    var root = 1;
+    for (var i = 0; i < deg; i++) {
+      for (var j = 0; j < deg; j++) {
+        d[j] = gfMul(d[j], root);
+        if (j + 1 < deg) d[j] ^= d[j + 1];
+      }
+      root = gfMul(root, 0x02);
+    }
+    return d;
+  }
+  function rsRem(data, div) {
+    var r = new Uint8Array(div.length);
+    for (var k = 0; k < data.length; k++) {
+      var f = data[k] ^ r[0];
+      r.copyWithin(0, 1);
+      r[r.length - 1] = 0;
+      for (var i = 0; i < div.length; i++) r[i] ^= gfMul(div[i], f);
+    }
+    return r;
+  }
+
+  function encode(text, ecl) {
+    var bytes = new TextEncoder().encode(text);
+    var version = 0, capBits = 0;
+    for (var v = 1; v <= 40; v++) {
+      var cap = dataCodewords(v, ecl) * 8;
+      var cc = v < 10 ? 8 : 16;
+      if (4 + cc + bytes.length * 8 <= cap) { version = v; capBits = cap; break; }
+    }
+    if (!version) throw new Error("Link bahut lamba hai — chhota kijiye");
+
+    var bits = [];
+    function put(val, len) { for (var i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); }
+
+    put(0x4, 4);
+    put(bytes.length, version < 10 ? 8 : 16);
+    for (var b = 0; b < bytes.length; b++) put(bytes[b], 8);
+    put(0, Math.min(4, capBits - bits.length));
+    put(0, (8 - (bits.length % 8)) % 8);
+    for (var p = 0xEC; bits.length < capBits; p ^= 0xEC ^ 0x11) put(p, 8);
+
+    var dc = [];
+    for (var i = 0; i < bits.length; i += 8) {
+      var bb = 0;
+      for (var j = 0; j < 8; j++) bb = (bb << 1) | bits[i + j];
+      dc.push(bb);
+    }
+
+    var nBlocks = BLK[ecl][version], eccLen = ECC[ecl][version];
+    var rawCW = Math.floor(rawModules(version) / 8);
+    var nShort = nBlocks - (rawCW % nBlocks);
+    var shortLen = Math.floor(rawCW / nBlocks);
+    var div = rsDiv(eccLen);
+    var blocks = [];
+    for (var bi = 0, k = 0; bi < nBlocks; bi++) {
+      var len = shortLen - eccLen + (bi < nShort ? 0 : 1);
+      var dat = dc.slice(k, k + len);
+      k += len;
+      var ecc = rsRem(dat, div);
+      if (bi < nShort) dat.push(0);
+      blocks.push(dat.concat(Array.prototype.slice.call(ecc)));
+    }
+    var cw = [];
+    for (var ci = 0; ci < blocks[0].length; ci++) {
+      for (var cj = 0; cj < blocks.length; cj++) {
+        if (ci !== shortLen - eccLen || cj >= nShort) cw.push(blocks[cj][ci]);
+      }
+    }
+
+    var size = version * 4 + 17;
+    var mod = [], fn = [];
+    for (var y = 0; y < size; y++) {
+      mod.push(new Array(size).fill(false));
+      fn.push(new Array(size).fill(false));
+    }
+    function setF(x, y, d) { mod[y][x] = d; fn[y][x] = true; }
+    function bit(v, i) { return ((v >>> i) & 1) !== 0; }
+
+    for (var t = 0; t < size; t++) { setF(6, t, t % 2 === 0); setF(t, 6, t % 2 === 0); }
+
+    function finder(cx, cy) {
+      for (var dy = -4; dy <= 4; dy++) for (var dx = -4; dx <= 4; dx++) {
+        var x = cx + dx, yy = cy + dy;
+        if (x < 0 || x >= size || yy < 0 || yy >= size) continue;
+        var d = Math.max(Math.abs(dx), Math.abs(dy));
+        setF(x, yy, d !== 2 && d !== 4);
+      }
+    }
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+
+    var ap = alignPos(version), na = ap.length;
+    for (var ai = 0; ai < na; ai++) for (var aj = 0; aj < na; aj++) {
+      if ((ai === 0 && aj === 0) || (ai === 0 && aj === na - 1) || (ai === na - 1 && aj === 0)) continue;
+      for (var py = -2; py <= 2; py++) for (var px = -2; px <= 2; px++)
+        setF(ap[ai] + px, ap[aj] + py, Math.max(Math.abs(px), Math.abs(py)) !== 1);
+    }
+
+    function drawFmt(mask) {
+      var data = (FMT[ecl] << 3) | mask, rem = data;
+      for (var i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      var bts = ((data << 10) | rem) ^ 0x5412;
+      for (var a = 0; a <= 5; a++) setF(8, a, bit(bts, a));
+      setF(8, 7, bit(bts, 6)); setF(8, 8, bit(bts, 7)); setF(7, 8, bit(bts, 8));
+      for (var b2 = 9; b2 < 15; b2++) setF(14 - b2, 8, bit(bts, b2));
+      for (var c = 0; c < 8; c++) setF(size - 1 - c, 8, bit(bts, c));
+      for (var d = 8; d < 15; d++) setF(8, size - 15 + d, bit(bts, d));
+      setF(8, size - 8, true);
+    }
+    function drawVer() {
+      if (version < 7) return;
+      var rem = version;
+      for (var i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+      var bts = (version << 12) | rem;
+      for (var j = 0; j < 18; j++) {
+        var b = bit(bts, j);
+        setF(size - 11 + (j % 3), Math.floor(j / 3), b);
+        setF(Math.floor(j / 3), size - 11 + (j % 3), b);
+      }
+    }
+    drawFmt(0); drawVer();
+
+    var bi2 = 0, tot = cw.length * 8;
+    for (var right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (var vert = 0; vert < size; vert++) for (var jj = 0; jj < 2; jj++) {
+        var xx = right - jj;
+        var up = ((right + 1) & 2) === 0;
+        var yy2 = up ? size - 1 - vert : vert;
+        if (!fn[yy2][xx] && bi2 < tot) {
+          mod[yy2][xx] = bit(cw[bi2 >>> 3], 7 - (bi2 & 7));
+          bi2++;
+        }
+      }
+    }
+
+    function applyMask(m) {
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+        if (fn[y][x]) continue;
+        var inv = false;
+        switch (m) {
+          case 0: inv = (x + y) % 2 === 0; break;
+          case 1: inv = y % 2 === 0; break;
+          case 2: inv = x % 3 === 0; break;
+          case 3: inv = (x + y) % 3 === 0; break;
+          case 4: inv = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0; break;
+          case 5: inv = (x * y) % 2 + (x * y) % 3 === 0; break;
+          case 6: inv = ((x * y) % 2 + (x * y) % 3) % 2 === 0; break;
+          case 7: inv = ((x + y) % 2 + (x * y) % 3) % 2 === 0; break;
+        }
+        if (inv) mod[y][x] = !mod[y][x];
+      }
+    }
+    function penalty() {
+      var r = 0, N1 = 3, N2 = 3, N3 = 40, N4 = 10;
+      function addH(l, h) { if (h[0] === 0) l += size; h.pop(); h.unshift(l); }
+      function cpat(h) {
+        var n = h[1];
+        var core = n > 0 && h[2] === n && h[3] === n * 3 && h[4] === n && h[5] === n;
+        return (core && h[0] >= n * 4 && h[6] >= n ? 1 : 0) + (core && h[6] >= n * 4 && h[0] >= n ? 1 : 0);
+      }
+      function term(col, l, h) { if (col) { addH(l, h); l = 0; } l += size; addH(l, h); return cpat(h); }
+      var y, x;
+      for (y = 0; y < size; y++) {
+        var col = false, run = 0, h = [0,0,0,0,0,0,0];
+        for (x = 0; x < size; x++) {
+          if (mod[y][x] === col) { run++; if (run === 5) r += N1; else if (run > 5) r++; }
+          else { addH(run, h); if (!col) r += cpat(h) * N3; col = mod[y][x]; run = 1; }
+        }
+        r += term(col, run, h) * N3;
+      }
+      for (x = 0; x < size; x++) {
+        var col2 = false, run2 = 0, h2 = [0,0,0,0,0,0,0];
+        for (y = 0; y < size; y++) {
+          if (mod[y][x] === col2) { run2++; if (run2 === 5) r += N1; else if (run2 > 5) r++; }
+          else { addH(run2, h2); if (!col2) r += cpat(h2) * N3; col2 = mod[y][x]; run2 = 1; }
+        }
+        r += term(col2, run2, h2) * N3;
+      }
+      for (y = 0; y < size - 1; y++) for (x = 0; x < size - 1; x++) {
+        var c = mod[y][x];
+        if (c === mod[y][x + 1] && c === mod[y + 1][x] && c === mod[y + 1][x + 1]) r += N2;
+      }
+      var dark = 0;
+      for (y = 0; y < size; y++) for (x = 0; x < size; x++) if (mod[y][x]) dark++;
+      var tot2 = size * size;
+      var kk = Math.ceil(Math.abs(dark * 20 - tot2 * 10) / tot2) - 1;
+      if (kk < 0) kk = 0;
+      return r + kk * N4;
+    }
+
+    var bestMask = 0, minP = Infinity;
+    for (var m = 0; m < 8; m++) {
+      applyMask(m); drawFmt(m);
+      var p = penalty();
+      if (p < minP) { minP = p; bestMask = m; }
+      applyMask(m);
+    }
+    applyMask(bestMask); drawFmt(bestMask);
+    return mod;
+  }
+  return { encode: encode };
+})();
+
+
+/* =========================================================================
+   18 THEMES
+   ========================================================================= */
+var THEMES = [
+  { id:'classic',  name:'Classic',   fg:'#111111', bg:'#ffffff', shape:'square',  finder:'square' },
+  { id:'midnight', name:'Midnight',  fg:'#f8fafc', bg:'#0f172a', shape:'rounded', finder:'rounded' },
+  { id:'ocean',    name:'Ocean',     fg:'#0c4a6e', bg:'#e0f2fe', shape:'dot',     finder:'circle' },
+  { id:'sunset',   name:'Sunset',    fgGrad:['#f97316','#ec4899'], bg:'#fff7ed', shape:'rounded', finder:'rounded' },
+  { id:'forest',   name:'Forest',    fg:'#14532d', bg:'#dcfce7', shape:'dot',     finder:'circle' },
+  { id:'royal',    name:'Royal',     fg:'#581c87', bg:'#fef3c7', shape:'rounded', finder:'rounded' },
+  { id:'neon',     name:'Neon',      fg:'#22d3ee', bg:'#0f172a', shape:'dot',     finder:'circle' },
+  { id:'rose',     name:'Rose',      fg:'#be123c', bg:'#ffe4e6', shape:'rounded', finder:'rounded' },
+  { id:'coffee',   name:'Coffee',    fg:'#78350f', bg:'#fef3c7', shape:'square',  finder:'square' },
+  { id:'mint',     name:'Mint',      fg:'#0f766e', bg:'#ccfbf1', shape:'dot',     finder:'circle' },
+  { id:'grape',    name:'Grape',     fgGrad:['#7c3aed','#ec4899'], bg:'#f5f3ff', shape:'rounded', finder:'rounded' },
+  { id:'coral',    name:'Coral',     fg:'#fb7185', bg:'#1e293b', shape:'rounded', finder:'rounded' },
+  { id:'gold',     name:'Gold',      fgGrad:['#fbbf24','#d97706'], bg:'#1c1917', shape:'dot',     finder:'circle' },
+  { id:'cyber',    name:'Cyber',     fgGrad:['#d946ef','#06b6d4'], bg:'#18181b', shape:'rounded', finder:'rounded' },
+  { id:'minimal',  name:'Minimal',   fg:'#475569', bg:'#f1f5f9', shape:'dot',     finder:'circle' },
+  { id:'rainbow',  name:'Rainbow',   fgGrad:['#ef4444','#f59e0b','#10b981','#3b82f6'], bg:'#ffffff', shape:'rounded', finder:'rounded' },
+  { id:'lavender', name:'Lavender',  fg:'#7c3aed', bg:'#ede9fe', shape:'dot',     finder:'circle' },
+  { id:'emerald',  name:'Emerald',   fgGrad:['#059669','#10b981'], bg:'#ecfdf5', shape:'rounded', finder:'rounded' }
+];
+
+function themePrimary(t) {
+  if (t.fg) return t.fg;
+  if (t.fgGrad) return t.fgGrad[0];
+  return '#000';
+}
+function isDark(hex) {
+  if (typeof hex !== 'string' || hex[0] !== '#') return false;
+  var r = parseInt(hex.substr(1, 2), 16);
+  var g = parseInt(hex.substr(3, 2), 16);
+  var b = parseInt(hex.substr(5, 2), 16);
+  return (r + g + b) < 380;
+}
+
+
+/* =========================================================================
+   CANVAS RENDER
+   ========================================================================= */
+var canvas = document.getElementById('qrCanvas');
+var ctx = canvas.getContext('2d');
+var lastMatrix = null;
+
+function makeFill(spec, size) {
+  if (typeof spec === 'string') return spec;
+  if (!spec) return '#000';
+  var g = ctx.createLinearGradient(0, 0, size, size);
+  for (var i = 0; i < spec.length; i++) g.addColorStop(i / (spec.length - 1), spec[i]);
+  return g;
+}
+function roundRect(c, x, y, w, h, r) {
+  if (r > w / 2) r = w / 2;
+  if (r > h / 2) r = h / 2;
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+function isFinder(mx, my, n) {
+  return (mx < 7 && my < 7) || (mx >= n - 7 && my < 7) || (mx < 7 && my >= n - 7);
+}
+function drawModule(c, px, py, s, shape) {
+  if (shape === 'dot') {
+    c.beginPath();
+    c.arc(px + s / 2, py + s / 2, s * 0.42, 0, Math.PI * 2);
+    c.fill();
+  } else if (shape === 'rounded') {
+    var inset = s * 0.06;
+    roundRect(c, px + inset, py + inset, s - inset * 2, s - inset * 2, s * 0.32);
+    c.fill();
+  } else {
+    c.fillRect(px, py, s, s);
+  }
+}
+function drawFinderMark(c, ox, oy, cell, style) {
+  var total = 7 * cell;
+  var cx = ox + total / 2, cy = oy + total / 2;
+  if (style === 'circle') {
+    c.lineWidth = cell;
+    c.beginPath(); c.arc(cx, cy, total / 2 - cell / 2, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(cx, cy, cell * 1.5, 0, Math.PI * 2); c.fill();
+  } else if (style === 'rounded') {
+    c.lineWidth = cell;
+    roundRect(c, ox + cell / 2, oy + cell / 2, total - cell, total - cell, cell * 1.6); c.stroke();
+    roundRect(c, ox + cell * 2, oy + cell * 2, cell * 3, cell * 3, cell * 0.8); c.fill();
+  } else {
+    c.fillRect(ox, oy, total, cell);
+    c.fillRect(ox, oy + total - cell, total, cell);
+    c.fillRect(ox, oy, cell, total);
+    c.fillRect(ox + total - cell, oy, cell, total);
+    c.fillRect(ox + cell * 2, oy + cell * 2, cell * 3, cell * 3);
+  }
+}
+
+function renderQR(matrix, theme) {
+  var n = matrix.length;
+  var quiet = 4;
+  var total = n + quiet * 2;
+
+  // Fit to viewport width
+  var maxW = Math.min(300, Math.max(220, window.innerWidth - 100));
+  var dpr = Math.min(window.devicePixelRatio || 1, 3);
+  var cell = Math.max(3, Math.floor((maxW * dpr) / total));
+  var px = total * cell;
+
+  canvas.width = px;
+  canvas.height = px;
+  canvas.style.width = maxW + 'px';
+  canvas.style.height = maxW + 'px';
+
+  // Background
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, px, px);
+
+  var off = quiet * cell;
+  var fillSpec = theme.fgGrad || theme.fg;
+  var fgFill = makeFill(fillSpec, px);
+
+  // Modules
+  ctx.fillStyle = fgFill;
+  for (var y = 0; y < n; y++) {
+    for (var x = 0; x < n; x++) {
+      if (!matrix[y][x]) continue;
+      if (isFinder(x, y, n)) continue;
+      drawModule(ctx, off + x * cell, off + y * cell, cell, theme.shape);
+    }
+  }
+
+  // Finder patterns
+  ctx.fillStyle = fgFill;
+  ctx.strokeStyle = fgFill;
+  drawFinderMark(ctx, off, off, cell, theme.finder);
+  drawFinderMark(ctx, off + (n - 7) * cell, off, cell, theme.finder);
+  drawFinderMark(ctx, off, off + (n - 7) * cell, cell, theme.finder);
+}
+
+
+/* =========================================================================
+   UI
+   ========================================================================= */
+var urlInput   = document.getElementById('urlInput');
+var eclSelect  = document.getElementById('eclSelect');
+var labelInput = document.getElementById('labelInput');
+var errBox     = document.getElementById('errBox');
+var captionText= document.getElementById('captionText');
+var subText    = document.getElementById('subText');
+var themeGrid  = document.getElementById('themeGrid');
+var themeNameEl= document.getElementById('themeName');
+var qrArea     = document.getElementById('qrArea');
+var urlCount   = document.getElementById('urlCount');
+var toastEl    = document.getElementById('toast');
+
+var currentTheme = THEMES[0];
+var currentMatrix = null;
+var currentURL = '';
+var timer = null;
+
+function normalize(raw) {
+  var s = (raw || '').trim();
+  if (!s) return '';
+  if (!/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(s)) {
+    if (/^[\w\-]+(\.[\w\-]+)+/.test(s) || s.indexOf('.') > -1) s = 'https://' + s;
+  }
+  return s;
+}
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function () { toastEl.classList.remove('show'); }, 1900);
+}
+
+function updateCaption() {
+  var lbl = labelInput.value.trim();
+  captionText.textContent = lbl || '';
+  subText.textContent = currentURL || '';
+  var dark = isDark(currentTheme.bg);
+  captionText.style.color = dark ? '#f1f5f9' : themePrimary(currentTheme);
+  subText.style.color = dark ? '#94a3b8' : '#64748b';
+  qrArea.style.background = currentTheme.bg;
+  qrArea.style.borderColor = dark ? 'rgba(255,255,255,.08)' : 'var(--line)';
+}
+
+function showError(msg) {
+  if (msg) { errBox.textContent = msg; errBox.classList.add('show'); }
+  else { errBox.textContent = ''; errBox.classList.remove('show'); }
+}
+
+function generate() {
+  showError('');
+  var url = normalize(urlInput.value);
+  if (!url) {
+    showError('Pehle koi URL daaliye.');
+    return;
+  }
+  try {
+    var matrix = QRGen.encode(url, parseInt(eclSelect.value, 10));
+    currentMatrix = matrix;
+    currentURL = url;
+    renderQR(matrix, currentTheme);
+    updateCaption();
+  } catch (e) {
+    showError('❌ ' + (e.message || e));
+    currentMatrix = null;
+    currentURL = '';
+  }
+}
+
+function schedule() {
+  clearTimeout(timer);
+  timer = setTimeout(generate, 220);
+}
+
+/* ---------- Build theme scroller ---------- */
+(function buildThemes() {
+  THEMES.forEach(function (t, idx) {
+    var btn = document.createElement('button');
+    btn.className = 'theme-item' + (idx === 0 ? ' active' : '');
+    btn.type = 'button';
+    btn.setAttribute('data-id', t.id);
+
+    var sw = document.createElement('div');
+    sw.className = 'theme-swatch';
+    if (t.fgGrad) {
+      sw.style.background = 'linear-gradient(135deg, ' + t.fgGrad.join(', ') + ')';
+      sw.style.color = '#ffffff';
+    } else {
+      sw.style.background = t.fg;
+      sw.style.color = t.bg;
+    }
+    sw.textContent = '▣';
+
+    var nm = document.createElement('div');
+    nm.className = 'theme-name';
+    nm.textContent = t.name;
+
+    btn.appendChild(sw);
+    btn.appendChild(nm);
+    btn.addEventListener('click', function () {
+      currentTheme = t;
+      var all = themeGrid.querySelectorAll('.theme-item');
+      for (var i = 0; i < all.length; i++) {
+        all[i].classList.toggle('active', all[i].getAttribute('data-id') === t.id);
+      }
+      themeNameEl.textContent = t.name;
+      if (currentMatrix) {
+        renderQR(currentMatrix, currentTheme);
+        updateCaption();
+      }
+    });
+    themeGrid.appendChild(btn);
+  });
+})();
+
+/* ---------- Events ---------- */
+urlInput.addEventListener('input', function () {
+  urlCount.textContent = urlInput.value.length + ' / 2000';
+  schedule();
+});
+labelInput.addEventListener('input', function () { if (currentMatrix) updateCaption(); });
+eclSelect.addEventListener('change', generate);
+urlInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { clearTimeout(timer); generate(); urlInput.blur(); }
+});
+window.addEventListener('resize', function () {
+  if (currentMatrix) renderQR(currentMatrix, currentTheme);
+});
+
+document.getElementById('regenBtn').addEventListener('click', generate);
+
+/* ---------- Paste ---------- */
+document.getElementById('pasteBtn').addEventListener('click', async function () {
+  try {
+    var txt = await navigator.clipboard.readText();
+    if (txt) {
+      urlInput.value = txt;
+      urlCount.textContent = txt.length + ' / 2000';
+      generate();
+      toast('Paste ho gaya');
+    } else {
+      toast('Clipboard khaali hai');
+    }
+  } catch (e) {
+    urlInput.focus();
+    toast('Manually paste kijiye');
+  }
+});
+
+/* ---------- Share ---------- */
+document.getElementById('shareBtn').addEventListener('click', async function () {
+  if (!currentURL) { generate(); }
+  if (!currentURL) { toast('Pehle link daaliye'); return; }
+
+  // Try sharing the actual QR image (this is what lets WhatsApp/Instagram
+  // etc. show up as "share as photo" targets, not just plain text).
+  try {
+    var blob = await new Promise(function (res) { canvas.toBlob(res, 'image/png'); });
+    if (blob) {
+      var file = new File([blob], 'qr-' + currentTheme.id + '.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'QR Code', text: currentURL });
+        return;
+      }
+    }
+  } catch (e) { /* fall through to link-only share below */ }
+
+  // Fallback 1: share just the link via the system share sheet.
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'QR Code', text: currentURL, url: currentURL });
+      return;
+    } catch (e) { /* user cancelled or unsupported, fall through */ }
+  }
+
+  // Fallback 2: copy the link to clipboard.
+  try {
+    await navigator.clipboard.writeText(currentURL);
+    toast('Link copy ho gaya');
+  } catch (e) {
+    toast('Share support nahi hai — is browser me kaam nahi karta');
+  }
+});
+
+/* ---------- Print ---------- */
+document.getElementById('printBtn').addEventListener('click', function () {
+  if (!currentURL) { generate(); }
+  if (!currentURL) { toast('Pehle link daaliye'); return; }
+  setTimeout(function () { window.print(); }, 80);
+});
+
+/* ---------- Download ---------- */
+document.getElementById('dlBtn').addEventListener('click', function () {
+  if (!currentURL) { generate(); }
+  if (!currentURL) { toast('Pehle link daaliye'); return; }
+
+  var lbl = labelInput.value.trim();
+  var url = currentURL;
+  var pad = 44;
+  var lblSpace = lbl ? 68 : 0;
+  var urlSpace = url ? 40 : 0;
+  var extra = pad + lblSpace + urlSpace + pad;
+
+  var out = document.createElement('canvas');
+  out.width = canvas.width;
+  out.height = canvas.height + extra;
+  var octx = out.getContext('2d');
+
+  octx.fillStyle = currentTheme.bg;
+  octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(canvas, 0, 0);
+
+  var fg = themePrimary(currentTheme);
+  var dark = isDark(currentTheme.bg);
+  octx.textAlign = 'center';
+
+  var y = canvas.height + pad;
+  if (lbl) {
+    octx.fillStyle = dark ? '#f1f5f9' : fg;
+    octx.font = 'bold ' + Math.round(out.width * 0.075) + 'px system-ui, sans-serif';
+    octx.fillText(lbl, out.width / 2, y + 34);
+    y += lblSpace;
+  }
+  if (url) {
+    octx.fillStyle = dark ? '#94a3b8' : '#64748b';
+    octx.font = Math.round(out.width * 0.04) + 'px system-ui, sans-serif';
+    var maxW = out.width - 70;
+    var show = url;
+    while (octx.measureText(show).width > maxW && show.length > 10) show = show.slice(0, -2) + '…';
+    octx.fillText(show, out.width / 2, y + 24);
+  }
+
+  var filename = 'qr-' + currentTheme.id + '.png';
+  var dataUrl = out.toDataURL('image/png');
+
+  try {
+    var a = document.createElement('a');
+    a.download = filename;
+    a.href = dataUrl;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('PNG download ho gaya');
+  } catch (e) {
+    // Some in-app browsers (e.g. opening this page inside WhatsApp/Instagram)
+    // block plain anchor downloads. Fall back to the platform's own
+    // download prompt if this page is running inside such a viewer.
+    (async function () {
+      try {
+        var downloads = window.claude && (await window.claude.use('downloads'));
+        if (downloads) {
+          await downloads.save({ filename: filename, data: dataUrl });
+          toast('PNG download ho gaya');
+          return;
+        }
+      } catch (e2) { /* ignore */ }
+      toast('Download is browser me support nahi ho raha — kisi doosre browser me kholiye');
+    })();
+  }
+});
+
+/* ---------- Init ---------- */
+urlInput.value = 'example.com';
+urlCount.textContent = urlInput.value.length + ' / 2000';
+generate();
+</script>
+</body>
+</html>
